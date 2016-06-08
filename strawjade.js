@@ -83,7 +83,7 @@ var Jade = window.Jade = (function(){
 		HTML_LOWERTHAN = '&lt;',
 		HTML_QUOTES = '&quot;',
 		SHARP = '#',
-		JADE_EXT = '.jade' ;
+		JADE_EXT = '.jade',
 		EMPTY = '' ;
 
 
@@ -376,7 +376,7 @@ var Jade = window.Jade = (function(){
 						}
 					}
 					if('html' in o) el.innerHTML = el.innerHTML + o['html'] ;
-					if(!!o.children && o.children.length > 0 ) el = arguments.callee(o, el) ;
+					if(!!o.children && o.children.length > 0 ) el = createChild(o, el) ;
 					pdiv.appendChild(el) ;
 				}
 			}
@@ -465,7 +465,6 @@ var Jade = window.Jade = (function(){
 					th.failed = true ;
 					if(!!error) error(r, url) ;
 					else throw new Error('JadeRequestError : Path > "'+ url +'" failed, with status :'+ r.status) ;
-					return false ;
 					return ;
 				}
 				this.response = r.responseText ;
