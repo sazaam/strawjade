@@ -43,7 +43,9 @@ var Jade = window.Jade = (function(){
 		comments_r = /^(\t+)*(\/\/)/i,
 		include_r = /^(\t+)*(include) ([0-9a-z\/._-]+)$/im,
 		allincludes_r = /^(\t+)*(include) ([0-9a-z\/._-]+)$/gim,
-		ext_r = /[.](a-z0-9)+$/,
+		extends_r = /^(\t+)*(extends) ([0-9a-z\/._-]+)$/im,
+		allextends_r = /^(\t+)*(extends) ([0-9a-z\/._-]+)$/gim,
+		ext_r = /[.]([a-z0-9])+$/,
 		vars_r = /^((var )?\b\w+\b) =(?!=) */i,
 		livecode_r = /^- /,
 		tag_r = /^[0-6a-z]+/,
@@ -61,11 +63,14 @@ var Jade = window.Jade = (function(){
 		doublequote_r = /"/g,
 		blank_r = /^(\t+)*(\n|$)/gm,
 		expr_r = /(#|\!)\{([^\}]+)\}/gi,
+		expr_attr_r = /\([^ ]+\=([^'"].+)\)/gi,
+		// expr_attr_r = /\([^ ]+\=(([^'"]).+(?!\3))\)/gi,
 		crlf_r = /(\r\n)/g,
 		ccc_r = /(\r)/mg,
 		end_r = /\n$/,
 		startnestedDecl_r = /\{ *$/i,
 		endnestedDecl_r = /\} *$/i,
+		block_r = /(\t+)block.+\1/gi,
 
 		HTMLESC_r = /(\/)/g,
 		HTML_AMP_r = /&(?!\w+;)/g,
@@ -78,6 +83,7 @@ var Jade = window.Jade = (function(){
 		NL = '\n',
 		NLTAB = '\n\t',
 		RTAB = '\r\t',
+		RET = '\r',
 		HTML_AMP = '&amp;',
 		HTML_GREATERTHAN = '&gt;',
 		HTML_LOWERTHAN = '&lt;',
@@ -85,7 +91,6 @@ var Jade = window.Jade = (function(){
 		SHARP = '#',
 		JADE_EXT = '.jade',
 		EMPTY = '' ;
-
 
 	Jade.esc = function(html){
 		return String(html)
@@ -101,6 +106,14 @@ var Jade = window.Jade = (function(){
 
 	Jade.live = function live(str, locals){
 		var STR = EMPTY ;
+		
+		str = str.replace(expr_attr_r, function(){
+			var d = arguments[0] ;
+			var v = arguments[1] ;
+			
+			return d.replace('=' + v, "=\"' + "+ v + " + '\"") ;
+		}) ;
+		
 		str = str.replace(expr_r, function(){
 			var dec = arguments[1] ;
 			var sss ;
@@ -123,32 +136,83 @@ var Jade = window.Jade = (function(){
 		var parents = [] ;
 		var parent, node ;
 		var top = parent = parents[0] = {children:[], index:0} ;
-		var parentIndex, oldParentIndex = 0;
-		
-		
+		var parentIndex, oldParentIndex = 0 ;
 		var all = text ;
-		
-		
+		// isofy CRLF to CR, causing huge amount of issues
+		all = all.replace(crlf_r, RET) ;
 		
 		// HACKING ISSUE OF MISSING-ANY-TABS SPECIAL CASE
+		// all = all.replace(ccc_r, RTAB) ;
 		all = TAB + all.replace(ccc_r, RTAB) ;
 		// REMOVING ANY BLANK LINES
 		all = all.replace(blank_r, EMPTY) ;
-
-		//includes
+		
+		
+		
+		// extends & block
+		
+		// 1 LOAD THE EXTENDS ... 
+		if(allextends_r.test(all)){
+			all = all.replace(allextends_r, function paresForExtends(){
+				
+				// var ttt = arguments[1] ;
+				// var path = arguments[3] ;
+				
+				
+				// if(!ext_r.test(path)){
+				// 	path = path + JADE_EXT ;
+				// }
+				
+				// var t = new Jade().load(false, path) ;
+				// var msg = t.response ;
+				
+				// var block_r = /(\t+)block ([\d\w-_]+)/gi ;
+				
+				// if(block_r.test(msg)){
+				// 	msg.replace(block_r, function(){
+						
+				// 		trace(arguments)
+				// 		var line = arguments[0] ;
+				// 		var tabs = arguments[1] ;
+				// 		var blockname = arguments[2] ;
+				// 		var all = arguments[4] ;
+				// 		var ll = tabs.length ; 
+						
+				// 		var ss = all.replace(block_r, '') ;
+				// 		trace(ss)
+						
+						
+						
+				// 	})
+					
+				// }else{
+					
+				// 	throw 'Inherited template does\'nt specify any BLOCK definition.'
+					
+				// }
+				
+				throw 'EXTENDS NOT IMPLEMENTED YET' ;
+			})
+		}
+		
+		// includes
 		if(allincludes_r.test(all)){
 			all = all.replace(allincludes_r, function parseForIncludes(){
 				var ttt = arguments[1] ;
 				var path = arguments[3] ;
+				
+				path = path ;
+				
 				if(!ext_r.test(path)){
 					path = path + JADE_EXT ;
 				}
+				
 				var msg = new Jade().load(false, path).response ;
+				
 				msg = msg.replace(multiline_r, function(){
 					return ttt + arguments[0] ;
 				}) ;
 				
-				msg = msg ;
 				while(include_r.test(msg)){
 					msg = msg.replace(include_r, arguments.callee) ;
 				}
@@ -222,7 +286,11 @@ var Jade = window.Jade = (function(){
 		}) ;
 		var evalstr = start + buff + end ;
 		
+		
+		
+		
 		all = live(evalstr, locals) ;
+		
 		
 		var rightContext = all ;
 		// MAIN LINE FIND/REPLACE LOOP
@@ -354,11 +422,11 @@ var Jade = window.Jade = (function(){
 	
 	} ; 
 
-	Jade.render = function render(locals, text){
+	Jade.render = function render(text, locals){
 		
-		var obj = Jade.parse(locals, text) ;
+		var obj = Jade.parse(text, locals) ;
 		var excludes = {'html':1, 'tag':1, 'children':1, 'parent':1, 'index':1} ;
-
+		
 		return (function createChild(oo, pdiv){
 			var ch = oo.children ;
 			var l = ch.length ;
@@ -445,7 +513,7 @@ var Jade = window.Jade = (function(){
 		var async = this.async = async || this.async ;
 		var keepInLocalCache = keepInLocalCache || false ;
 		var forceBrowserNoCache = forceBrowserNoCache || false ;
-
+		
 		var url = this.url = (url || this.url) ;
 		var loc = (forceBrowserNoCache) ? url + '?t=' + Date.now() : url ;
 		
@@ -475,21 +543,26 @@ var Jade = window.Jade = (function(){
 			r.send(ud['postData']) ;
 
 		}else{
-			ud['post_method'] = 'GET' ;
-			r.open(ud['post_method'], loc, false) ;
-			r.send(null) ;
-			r.onreadystatechange = function () {
-				if (r.readyState != 4) return;
-				if (r.status != 200 && r.status != 304) {
-					th.failed = true ;
-					if(!!error) error(r, url) ;
-					else throw new Error('JadeRequestError : Path > "'+ url +'" failed, with status :'+ r.status) ;
-					return false ;
+			
+				ud['post_method'] = 'GET' ;
+				r.open(ud['post_method'], loc, false) ;
+				
+				r.onreadystatechange = function () {
+					if (r.readyState != 4) return;
+					if (r.status != 200 && r.status != 304) {
+						th.failed = true ;
+						if(!!error) error(r, url) ;
+						else throw new Error('JadeRequestError : Path > "'+ url +'" failed, with status :'+ r.status) ;
+						return false ;
+					}
 				}
-			}
-			this.response = r.responseText ;
-			if(keepInLocalCache) cache[url] = this.response ;
-			if(!!complete) complete(r, th) ;
+				r.send(null) ;
+				
+				this.response = r.responseText ;
+				if(keepInLocalCache) cache[url] = this.response ;
+				if(!!complete) complete(r, th) ;
+			
+			
 		}
 
 		return this ;
