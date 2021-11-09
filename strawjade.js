@@ -1,4 +1,4 @@
-/*
+﻿/*
  * StrawJade (part of StrawNode Project)
  * Jade Parser for Front-end Javascript
  * 
@@ -63,8 +63,7 @@ var Jade = window.Jade = (function(){
 		doublequote_r = /"/g,
 		blank_r = /^(\t+)*(\n|$)/gm,
 		expr_r = /(#|\!)\{([^\}]+)\}/gi,
-		expr_attr_r = /\([^ ]+\=([^'"].+)\)/gi,
-		// expr_attr_r = /\([^ ]+\=(([^'"]).+(?!\3))\)/gi,
+		expr_attr_r = /\([^ ]+\=([^=].+)\)/gi,
 		crlf_r = /(\r\n)/g,
 		ccc_r = /(\r)/mg,
 		end_r = /\n$/,
@@ -127,7 +126,6 @@ var Jade = window.Jade = (function(){
 		}) ;
 		
 		STR = "return (function(){with(this){ return (" + str + ")}}).call(this) ;" ;
-		
 		return new Function(STR).call(locals) ;
 	}
 
@@ -195,22 +193,22 @@ var Jade = window.Jade = (function(){
 			})
 		}
 		
+		
 		// includes
 		if(allincludes_r.test(all)){
+			
 			all = all.replace(allincludes_r, function parseForIncludes(){
 				var ttt = arguments[1] ;
 				var path = arguments[3] ;
 				
 				path = path ;
-				
 				if(!ext_r.test(path)){
 					path = path + JADE_EXT ;
 				}
 				
 				var msg = new Jade().load(false, path).response ;
-				
 				msg = msg.replace(multiline_r, function(){
-					return ttt + arguments[0] ;
+					return ttt + arguments[0].replace('\n', '') ;
 				}) ;
 				
 				while(include_r.test(msg)){
@@ -219,6 +217,7 @@ var Jade = window.Jade = (function(){
 				return msg ;
 			})
 		}
+		
 		
 		while(allcomments_r.test(all)){
 			all.replace(allcomments_r, function(){
@@ -285,9 +284,6 @@ var Jade = window.Jade = (function(){
 			
 		}) ;
 		var evalstr = start + buff + end ;
-		
-		
-		
 		
 		all = live(evalstr, locals) ;
 		
@@ -516,6 +512,8 @@ var Jade = window.Jade = (function(){
 		
 		var url = this.url = (url || this.url) ;
 		var loc = (forceBrowserNoCache) ? url + '?t=' + Date.now() : url ;
+		
+		var path = url.replace(/^[^\/]*/i, '') ;
 		
 		if(keepInLocalCache && url in cache){
 			this.response = cache[url] ;
